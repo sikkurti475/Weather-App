@@ -8,7 +8,7 @@ A full-stack weather application built with Node.js/Express (TypeScript) and Rea
 
 ### Prerequisites
 - Node.js 18+
-- A free [OpenWeatherMap API key](https://home.openweathermap.org/users/sign_up)
+- A free [OpenWeatherMap API key](https://home.openweathermap.org/api_keys)
 
 ### 1. Backend
 

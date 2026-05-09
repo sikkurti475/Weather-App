@@ -22,7 +22,7 @@ function handleAxiosError(error: unknown): never {
 
 export async function fetchCurrentWeather(location: string): Promise<OWMCurrentResponse> {
   try {
-    const { data } = await client.get<OWMCurrentResponse>('/data/3.0/weather', {
+    const { data } = await client.get<OWMCurrentResponse>('/data/2.5/weather', {
       params: { q: location },
     });
     return data;
@@ -33,8 +33,25 @@ export async function fetchCurrentWeather(location: string): Promise<OWMCurrentR
 
 export async function fetchForecast(location: string): Promise<OWMForecastResponse> {
   try {
-    const { data } = await client.get<OWMForecastResponse>('/data/3.0/forecast', {
+    const { data } = await client.get<OWMForecastResponse>('/data/2.5/forecast', {
       params: { q: location, cnt: 40 },
+    });
+    return data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+}
+
+export interface GeoResult {
+  name: string;
+  state?: string;
+  country: string;
+}
+
+export async function fetchSuggestions(q: string): Promise<GeoResult[]> {
+  try {
+    const { data } = await client.get<GeoResult[]>('/geo/1.0/direct', {
+      params: { q, limit: 5 },
     });
     return data;
   } catch (error) {

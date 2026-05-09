@@ -18,3 +18,16 @@ export function getCurrentWeather(location: string): Promise<CurrentWeather> {
 export function getForecast(location: string): Promise<ForecastDay[]> {
   return apiFetch<ForecastDay[]>(`${BASE_URL}/forecast?location=${encodeURIComponent(location)}`);
 }
+
+export interface GeoSuggestion {
+  name: string;
+  state?: string;
+  country: string;
+}
+
+export async function getSuggestions(q: string): Promise<GeoSuggestion[]> {
+  if (!q.trim()) return [];
+  const res = await fetch(`${BASE_URL}/suggestions?q=${encodeURIComponent(q)}`);
+  if (!res.ok) return [];
+  return res.json();
+}

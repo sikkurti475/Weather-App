@@ -14,7 +14,7 @@ export default function App() {
       </header>
 
       <main className="app__main">
-        <SearchBar onSearch={search} loading={loading} />
+        <SearchBar onSearch={search} loading={loading} error={error} />
 
         {error && (
           <div className="error-banner" role="alert">

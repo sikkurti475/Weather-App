@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { fetchCurrentWeather, fetchForecast } from '../services/weatherService';
+import { fetchCurrentWeather, fetchForecast, fetchSuggestions } from '../services/weatherService';
 import { formatCurrentWeather, formatForecast } from '../utils/weatherFormatters';
 
 const router = Router();
@@ -71,6 +71,20 @@ router.get('/forecast', async (req: Request, res: Response, next: NextFunction) 
   try {
     const raw = await fetchForecast(location.trim());
     res.json(formatForecast(raw));
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get('/suggestions', async (req: Request, res: Response, next: NextFunction) => {
+  const q = req.query.q as string | undefined;
+  if (!q?.trim()) {
+    res.status(400).json({ error: 'q query parameter is required' });
+    return;
+  }
+  try {
+    const results = await fetchSuggestions(q.trim());
+    res.json(results);
   } catch (error) {
     next(error);
   }
