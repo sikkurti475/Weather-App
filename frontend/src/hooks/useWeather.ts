@@ -1,30 +1,30 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
+import useSWR from 'swr';
 import { getCurrentWeather, getForecast } from '../services/weatherApi';
-import { WeatherState } from '../utils/types';
+import { CurrentWeather, ForecastDay } from '../utils/types';
 
-const initialState: WeatherState = {
-  current: null,
-  forecast: [],
-  loading: false,
-  error: null,
-};
+async function fetchWeather(location: string): Promise<{ current: CurrentWeather; forecast: ForecastDay[] }> {
+  const [current, forecast] = await Promise.all([
+    getCurrentWeather(location),
+    getForecast(location),
+  ]);
+  return { current, forecast };
+}
 
 export function useWeather() {
-  const [state, setState] = useState<WeatherState>(initialState);
+  const [location, setLocation] = useState<string | null>(null);
 
-  const search = useCallback(async (location: string) => {
-    setState({ current: null, forecast: [], loading: true, error: null });
-    try {
-      const [current, forecast] = await Promise.all([
-        getCurrentWeather(location),
-        getForecast(location),
-      ]);
-      setState({ current, forecast, loading: false, error: null });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : 'Something went wrong';
-      setState({ current: null, forecast: [], loading: false, error: message });
-    }
-  }, []);
+  const { data, error, isLoading } = useSWR(
+    location,
+    fetchWeather,
+    { revalidateOnFocus: true, dedupingInterval: 60_000 }
+  );
 
-  return { ...state, search };
+  return {
+    current: data?.current ?? null,
+    forecast: data?.forecast ?? [],
+    loading: isLoading,
+    error: error instanceof Error ? error.message : error ? 'Something went wrong' : null,
+    search: setLocation,
+  };
 }
