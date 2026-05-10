@@ -3,6 +3,7 @@ import { useWeather } from './hooks/useWeather';
 import { SearchBar } from './components/SearchBar';
 import { CurrentWeatherCard } from './components/CurrentWeatherCard';
 import { ForecastStrip } from './components/ForecastStrip';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 export default function App() {
@@ -35,14 +36,16 @@ export default function App() {
       {loading && !current ? (
         <LoadingSkeleton />
       ) : current ? (
-        <div className="weather-panel">
-          <div className="weather-panel__left">
-            <CurrentWeatherCard data={current} locationLabel={searchedLabel} />
+        <ErrorBoundary>
+          <div className="weather-panel">
+            <div className="weather-panel__left">
+              <CurrentWeatherCard data={current} locationLabel={searchedLabel} />
+            </div>
+            <div className="weather-panel__right">
+              <ForecastStrip forecast={forecast} />
+            </div>
           </div>
-          <div className="weather-panel__right">
-            <ForecastStrip forecast={forecast} />
-          </div>
-        </div>
+        </ErrorBoundary>
       ) : (
         <p className="hint">Search for a city or allow location access.</p>
       )}

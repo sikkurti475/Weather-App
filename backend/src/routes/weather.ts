@@ -4,6 +4,8 @@ import { formatCurrentWeather, formatForecast } from '../utils/weatherFormatters
 import { cacheGet, cacheSet } from '../services/cache';
 
 const router = Router();
+const inflightWeatherRequests = new Map<string, Promise<{ current: unknown; forecast: unknown }>>();
+const inflightSuggestionRequests = new Map<string, Promise<unknown>>();
 
 // Shared helper: resolve location string → coords, with caching
 async function resolveCoords(q: string): Promise<{ lat: number; lon: number } | null> {
@@ -41,17 +43,31 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
     const cached = await cacheGet(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const [rawCurrent, rawForecast] = await Promise.all([
-      fetchCurrentByCoords(lat, lon),
-      fetchForecastByCoords(lat, lon),
-    ]);
+    let payloadPromise = inflightWeatherRequests.get(cacheKey);
+    if (!payloadPromise) {
+      payloadPromise = (async () => {
+        try {
+          const [rawCurrent, rawForecast] = await Promise.all([
+            fetchCurrentByCoords(lat, lon),
+            fetchForecastByCoords(lat, lon),
+          ]);
 
-    const payload = {
-      current: formatCurrentWeather(rawCurrent),
-      forecast: formatForecast(rawForecast),
-    };
+          const payload = {
+            current: formatCurrentWeather(rawCurrent),
+            forecast: formatForecast(rawForecast),
+          };
 
-    await cacheSet(cacheKey, payload);
+          await cacheSet(cacheKey, payload);
+          return payload;
+        } finally {
+          inflightWeatherRequests.delete(cacheKey);
+        }
+      })();
+
+      inflightWeatherRequests.set(cacheKey, payloadPromise);
+    }
+
+    const payload = await payloadPromise;
     res.json(payload);
   } catch (error) {
     next(error);
@@ -72,13 +88,27 @@ router.get('/suggestions', async (req: Request, res: Response, next: NextFunctio
     const cached = await cacheGet(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const results = await geocode(trimmed);
-    const suggestions = results.map(r => ({
-      label: [r.name, r.state, r.country].filter(Boolean).join(', '),
-      lat: r.lat,
-      lon: r.lon,
-    }));
-    await cacheSet(cacheKey, suggestions);
+    let suggestionsPromise = inflightSuggestionRequests.get(cacheKey);
+    if (!suggestionsPromise) {
+      suggestionsPromise = (async () => {
+        try {
+          const results = await geocode(trimmed);
+          const suggestions = results.map(r => ({
+            label: [r.name, r.state, r.country].filter(Boolean).join(', '),
+            lat: r.lat,
+            lon: r.lon,
+          }));
+          await cacheSet(cacheKey, suggestions);
+          return suggestions;
+        } finally {
+          inflightSuggestionRequests.delete(cacheKey);
+        }
+      })();
+
+      inflightSuggestionRequests.set(cacheKey, suggestionsPromise);
+    }
+
+    const suggestions = await suggestionsPromise;
     res.json(suggestions);
   } catch (error) {
     next(error);

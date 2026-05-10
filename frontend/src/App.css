@@ -259,3 +259,27 @@ body[data-condition="haze"]        { background: linear-gradient(160deg, #5a6a7a
 .forecast-row__temps { display: flex; justify-content: flex-end; gap: 0.6rem; font-size: 0.95rem; }
 .forecast-row__max { font-weight: 500; }
 .forecast-row__min { color: var(--text-muted); }
+
+/* ── Error Boundary ── */
+.error-boundary {
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  text-align: center;
+  backdrop-filter: blur(20px);
+}
+.error-boundary h2 { margin-bottom: 0.5rem; color: var(--error); }
+.error-boundary p { margin-bottom: 1.5rem; color: var(--text-muted); }
+.error-boundary button {
+  background: var(--error);
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+.error-boundary button:hover { background: #ff5252; }
+.error-boundary details { margin-top: 1rem; text-align: left; }
+.error-boundary pre { background: rgba(0,0,0,0.2); padding: 0.5rem; border-radius: var(--radius-sm); font-size: 0.8rem; }

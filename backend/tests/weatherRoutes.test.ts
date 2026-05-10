@@ -99,6 +99,38 @@ describe('GET /api/weather', () => {
     expect(mockCacheSet).toHaveBeenCalled();
   });
 
+  it('coalesces concurrent requests for the same location cache key', async () => {
+    let resolveCurrent: (value: any) => void;
+    let resolveForecast: (value: any) => void;
+
+    mockFetchCurrent.mockImplementation(() => new Promise<any>(resolve => { resolveCurrent = resolve; }));
+    mockFetchForecast.mockImplementation(() => new Promise<any>(resolve => { resolveForecast = resolve; }));
+    mockCacheSet.mockResolvedValue();
+
+    const req1 = new Promise<any>(resolve => {
+      request(app)
+        .get('/api/weather?lat=30.2672&lon=-97.7431')
+        .end((err, res) => resolve(res));
+    });
+    const req2 = new Promise<any>(resolve => {
+      request(app)
+        .get('/api/weather?lat=30.2672&lon=-97.7431')
+        .end((err, res) => resolve(res));
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(mockFetchCurrent).toHaveBeenCalledTimes(1);
+    expect(mockFetchForecast).toHaveBeenCalledTimes(1);
+
+    resolveCurrent!(mockCurrentRaw as any);
+    resolveForecast!(mockForecastRaw as any);
+
+    const [res1, res2] = await Promise.all([req1, req2]);
+    expect(res1.status).toBe(200);
+    expect(res2.status).toBe(200);
+    expect(mockCacheSet).toHaveBeenCalledTimes(1);
+  });
+
   it('fetches and returns weather for valid location', async () => {
     mockGeocode.mockResolvedValue([{ name: 'Austin', lat: 30.2672, lon: -97.7431, country: 'US' }]);
     mockFetchCurrent.mockResolvedValue(mockCurrentRaw as any);
@@ -150,5 +182,36 @@ describe('GET /api/weather/suggestions', () => {
     expect(res.status).toBe(200);
     expect(res.body).toEqual([{ label: 'Austin, TX, US', lat: 30.2672, lon: -97.7431 }]);
     expect(mockCacheSet).toHaveBeenCalled();
+  });
+});
+
+describe('GET /health', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('returns healthy status when Redis is connected', async () => {
+    mockCacheGet.mockResolvedValue(null);
+    const res = await request(app).get('/health');
+    expect(res.status).toBe(200);
+    expect(res.body).toMatchObject({
+      status: 'healthy',
+      redis: 'connected'
+    });
+    expect(res.body).toHaveProperty('uptime');
+    expect(res.body).toHaveProperty('timestamp');
+  });
+
+  it('returns unhealthy status when Redis is disconnected', async () => {
+    mockCacheGet.mockRejectedValue(new Error('Redis connection failed'));
+    const res = await request(app).get('/health');
+    expect(res.status).toBe(503);
+    expect(res.body).toMatchObject({
+      status: 'unhealthy',
+      redis: 'disconnected'
+    });
+    expect(res.body).toHaveProperty('uptime');
+    expect(res.body).toHaveProperty('timestamp');
+    expect(res.body).toHaveProperty('error');
   });
 });
