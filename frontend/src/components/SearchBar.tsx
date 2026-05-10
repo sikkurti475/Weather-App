@@ -1,130 +1,106 @@
-import { useState, useEffect, useRef, FormEvent, KeyboardEvent } from 'react';
-import { getSuggestions, GeoSuggestion } from '../services/weatherApi';
+import { useState, useEffect, useRef, KeyboardEvent } from 'react';
+import { fetchSuggestions, Suggestion } from '../services/weatherApi';
 
-interface SearchBarProps {
-  onSearch: (location: string) => void;
+interface Props {
+  onSelectSuggestion: (lat: number, lon: number, label: string) => void;
+  onSearchText: (q: string) => void;
   loading: boolean;
-  error: string | null;
 }
 
-function labelFor(s: GeoSuggestion) {
-  return [s.name, s.state, s.country].filter(Boolean).join(', ');
-}
-
-// OWM /data/2.5/weather only understands "city,countrycode" — state breaks it
-function queryFor(s: GeoSuggestion) {
-  return `${s.name},${s.country}`;
-}
-
-export function SearchBar({ onSearch, loading, error }: SearchBarProps) {
+export function SearchBar({ onSelectSuggestion, onSearchText, loading }: Props) {
   const [value, setValue] = useState('');
-  const [suggestions, setSuggestions] = useState<GeoSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [activeIdx, setActiveIdx] = useState(-1);
-  const committedQueryRef = useRef<string | null>(null);
-  const skipFetchRef = useRef(false);
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const listRef = useRef<HTMLUListElement>(null);
+  const skipRef = useRef(false);
 
-  // Debounced suggestions fetch
   useEffect(() => {
-    if (skipFetchRef.current) { skipFetchRef.current = false; return; }
+    if (skipRef.current) { skipRef.current = false; return; }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (value.trim().length < 2) { setSuggestions([]); return; }
     debounceRef.current = setTimeout(async () => {
-      const results = await getSuggestions(value.trim());
+      const results = await fetchSuggestions(value.trim());
       setSuggestions(results);
       setActiveIdx(-1);
     }, 300);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [value]);
 
-  function commit(s: GeoSuggestion) {
-    const q = queryFor(s);
-    committedQueryRef.current = q;
-    skipFetchRef.current = true;
-    setValue(labelFor(s));
+  function commit(s: Suggestion) {
+    skipRef.current = true;
+    setValue(s.label);
     setSuggestions([]);
-    setActiveIdx(-1);
-    onSearch(q);
-  }
-
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    if (activeIdx >= 0 && suggestions[activeIdx]) {
-      commit(suggestions[activeIdx]);
-      return;
-    }
-    const trimmed = value.trim();
-    if (!trimmed) return;
-    setSuggestions([]);
-    // If the user hasn't edited the input since picking a suggestion, reuse the safe query
-    onSearch(committedQueryRef.current ?? trimmed);
+    onSelectSuggestion(s.lat, s.lon, s.label);
   }
 
   function handleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (!suggestions.length) return;
-    if (e.key === 'ArrowDown') {
+    if (e.key === 'ArrowDown') { e.preventDefault(); setActiveIdx(i => Math.min(i + 1, suggestions.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setActiveIdx(i => Math.max(i - 1, -1)); }
+    else if (e.key === 'Escape') { setSuggestions([]); }
+    else if (e.key === 'Enter') {
       e.preventDefault();
-      setActiveIdx(i => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIdx(i => Math.max(i - 1, -1));
-    } else if (e.key === 'Escape') {
-      setSuggestions([]);
+      if (activeIdx >= 0 && suggestions[activeIdx]) { commit(suggestions[activeIdx]); }
+      else if (value.trim()) { setSuggestions([]); onSearchText(value.trim()); }
     }
   }
 
-  // Autocorrect: first suggestion when city-not-found error
-  const isCityNotFound = error?.toLowerCase().includes('city not found') || error?.toLowerCase().includes('not found');
-  const autocorrectSuggestion = isCityNotFound && suggestions.length > 0 ? suggestions[0] : null;
+  function handleLocate() {
+    if (!navigator.geolocation) { setLocateError('Geolocation not supported'); return; }
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      ({ coords }) => {
+        onSelectSuggestion(coords.latitude, coords.longitude, '');
+        setLocating(false);
+      },
+      () => { setLocateError('Location access denied'); setLocating(false); }
+    );
+  }
 
   return (
     <div className="search-wrapper">
-      <form onSubmit={handleSubmit} className="search-bar">
+      <div className="search-bar">
         <div className="search-input-wrap">
           <input
             type="text"
             value={value}
-            onChange={(e) => { setValue(e.target.value); committedQueryRef.current = null; }}
+            onChange={e => { setValue(e.target.value); }}
             onKeyDown={handleKeyDown}
             onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-            placeholder="Enter city name (e.g. Austin, TX)"
+            placeholder="Search city… (e.g. Villanova, Pennsylvania, US)"
             aria-label="Location search"
-            aria-autocomplete="list"
-            aria-expanded={suggestions.length > 0}
-            disabled={loading}
             autoComplete="off"
           />
           {suggestions.length > 0 && (
-            <ul className="suggestions-list" ref={listRef} role="listbox">
+            <ul className="suggestions-list" role="listbox">
               {suggestions.map((s, i) => (
                 <li
-                  key={i}
+                  key={`${s.lat}-${s.lon}`}
                   role="option"
                   aria-selected={i === activeIdx}
-                  className={i === activeIdx ? 'suggestions-list__item suggestions-list__item--active' : 'suggestions-list__item'}
+                  className={`suggestions-list__item${i === activeIdx ? ' suggestions-list__item--active' : ''}`}
                   onMouseDown={() => commit(s)}
                 >
-                  {labelFor(s)}
+                  {s.label}
                 </li>
               ))}
             </ul>
           )}
         </div>
-        <button type="submit" disabled={loading || !value.trim()}>
-          {loading ? 'Searching…' : 'Search'}
+        <button
+          type="button"
+          className="locate-btn"
+          onClick={handleLocate}
+          disabled={locating || loading}
+          title="Use my location"
+          aria-label="Use my location"
+        >
+          {locating ? '…' : '📍'}
         </button>
-      </form>
-
-      {autocorrectSuggestion && (
-        <p className="autocorrect-hint">
-          Did you mean{' '}
-          <button className="autocorrect-hint__btn" onClick={() => commit(autocorrectSuggestion)}>
-            {labelFor(autocorrectSuggestion)}
-          </button>
-          ?
-        </p>
-      )}
+      </div>
+      {locateError && <p className="hint hint--error">{locateError}</p>}
     </div>
   );
 }

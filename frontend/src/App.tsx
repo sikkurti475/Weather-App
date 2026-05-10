@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useWeather } from './hooks/useWeather';
 import { SearchBar } from './components/SearchBar';
 import { CurrentWeatherCard } from './components/CurrentWeatherCard';
@@ -5,28 +6,47 @@ import { ForecastStrip } from './components/ForecastStrip';
 import './App.css';
 
 export default function App() {
-  const { current, forecast, loading, error, search } = useWeather();
+  const { current, forecast, loading, error, searchedLabel, searchByCoords, searchByLocation } = useWeather();
+
+  // Auto-load current location on mount
+  useEffect(() => {
+    navigator.geolocation?.getCurrentPosition(
+      ({ coords }) => searchByCoords(coords.latitude, coords.longitude),
+      () => {} // silently ignore if denied
+    );
+  }, []);
+
+  // Set dynamic background based on weather condition
+  useEffect(() => {
+    document.body.setAttribute('data-condition', current?.condition?.toLowerCase() ?? '');
+  }, [current?.condition]);
 
   return (
     <div className="app">
-      <header className="app__header">
-        <h1>Weather</h1>
-      </header>
-
       <main className="app__main">
-        <SearchBar onSearch={search} loading={loading} error={error} />
+        <SearchBar
+          onSelectSuggestion={(lat, lon, label) => searchByCoords(lat, lon, label)}
+          onSearchText={searchByLocation}
+          loading={loading}
+        />
 
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
+        {error && <div className="error-banner" role="alert">{error}</div>}
+
+        {loading && !current && <p className="hint">Loading…</p>}
+
+        {current && (
+          <div className="weather-panel">
+            <div className="weather-panel__left">
+              <CurrentWeatherCard data={current} locationLabel={searchedLabel} />
+            </div>
+            <div className="weather-panel__right">
+              <ForecastStrip forecast={forecast} />
+            </div>
           </div>
         )}
 
-        {current && <CurrentWeatherCard data={current} />}
-        {forecast.length > 0 && <ForecastStrip forecast={forecast} />}
-
         {!loading && !current && !error && (
-          <p className="app__placeholder">Search for a city to see the weather.</p>
+          <p className="hint">Search for a city or allow location access.</p>
         )}
       </main>
     </div>

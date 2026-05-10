@@ -1,30 +1,31 @@
 import { useState } from 'react';
 import useSWR from 'swr';
-import { getCurrentWeather, getForecast } from '../services/weatherApi';
-import { CurrentWeather, ForecastDay } from '../utils/types';
+import { fetchWeatherByCoords, fetchWeatherByLocation, WeatherPayload } from '../services/weatherApi';
 
-async function fetchWeather(location: string): Promise<{ current: CurrentWeather; forecast: ForecastDay[] }> {
-  const [current, forecast] = await Promise.all([
-    getCurrentWeather(location),
-    getForecast(location),
-  ]);
-  return { current, forecast };
+type Key = { type: 'coords'; lat: number; lon: number } | { type: 'location'; q: string };
+
+function fetcher(key: Key): Promise<WeatherPayload> {
+  return key.type === 'coords'
+    ? fetchWeatherByCoords(key.lat, key.lon)
+    : fetchWeatherByLocation(key.q);
 }
 
 export function useWeather() {
-  const [location, setLocation] = useState<string | null>(null);
+  const [key, setKey] = useState<Key | null>(null);
+  const [searchedLabel, setSearchedLabel] = useState<string | null>(null);
 
-  const { data, error, isLoading } = useSWR(
-    location,
-    fetchWeather,
-    { revalidateOnFocus: true, dedupingInterval: 60_000 }
-  );
+  const { data, error, isLoading } = useSWR(key, fetcher, {
+    revalidateOnFocus: false,
+    dedupingInterval: 60_000,
+  });
 
   return {
     current: data?.current ?? null,
     forecast: data?.forecast ?? [],
     loading: isLoading,
-    error: error instanceof Error ? error.message : error ? 'Something went wrong' : null,
-    search: setLocation,
+    error: error instanceof Error ? error.message : null,
+    searchedLabel,
+    searchByCoords: (lat: number, lon: number, label = '') => { setSearchedLabel(label || null); setKey({ type: 'coords', lat, lon }); },
+    searchByLocation: (q: string) => { setSearchedLabel(q); setKey({ type: 'location', q }); },
   };
 }

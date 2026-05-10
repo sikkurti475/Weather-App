@@ -10,48 +10,53 @@ const client: AxiosInstance = axios.create({
 
 function handleAxiosError(error: unknown): never {
   if (axios.isAxiosError(error)) {
-    const axiosErr = error as AxiosError<{ message?: string }>;
-    const status = axiosErr.response?.status ?? 500;
-    const message = axiosErr.response?.data?.message ?? axiosErr.message;
-    const err = new Error(message) as Error & { status: number };
-    err.status = status;
-    throw err;
+    const err = error as AxiosError<{ message?: string }>;
+    const status = err.response?.status ?? 500;
+    const message = err.response?.data?.message ?? err.message;
+    const e = new Error(message) as Error & { status: number };
+    e.status = status;
+    throw e;
   }
   throw error;
-}
-
-export async function fetchCurrentWeather(location: string): Promise<OWMCurrentResponse> {
-  try {
-    const { data } = await client.get<OWMCurrentResponse>('/data/2.5/weather', {
-      params: { q: location },
-    });
-    return data;
-  } catch (error) {
-    handleAxiosError(error);
-  }
-}
-
-export async function fetchForecast(location: string): Promise<OWMForecastResponse> {
-  try {
-    const { data } = await client.get<OWMForecastResponse>('/data/2.5/forecast', {
-      params: { q: location, cnt: 40 },
-    });
-    return data;
-  } catch (error) {
-    handleAxiosError(error);
-  }
 }
 
 export interface GeoResult {
   name: string;
   state?: string;
   country: string;
+  lat: number;
+  lon: number;
 }
 
-export async function fetchSuggestions(q: string): Promise<GeoResult[]> {
+/** Geocode a text query to coordinates */
+export async function geocode(q: string): Promise<GeoResult[]> {
   try {
     const { data } = await client.get<GeoResult[]>('/geo/1.0/direct', {
       params: { q, limit: 5 },
+    });
+    return data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+}
+
+/** Fetch current weather by coordinates */
+export async function fetchCurrentByCoords(lat: number, lon: number): Promise<OWMCurrentResponse> {
+  try {
+    const { data } = await client.get<OWMCurrentResponse>('/data/2.5/weather', {
+      params: { lat, lon },
+    });
+    return data;
+  } catch (error) {
+    handleAxiosError(error);
+  }
+}
+
+/** Fetch 5-day forecast by coordinates */
+export async function fetchForecastByCoords(lat: number, lon: number): Promise<OWMForecastResponse> {
+  try {
+    const { data } = await client.get<OWMForecastResponse>('/data/2.5/forecast', {
+      params: { lat, lon, cnt: 40 },
     });
     return data;
   } catch (error) {

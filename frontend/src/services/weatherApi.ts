@@ -1,33 +1,35 @@
 import { CurrentWeather, ForecastDay } from '../utils/types';
 
-const BASE_URL = '/api/weather';
+const BASE = '/api/weather';
 
-async function apiFetch<T>(url: string): Promise<T> {
-  const res = await fetch(url);
+export interface WeatherPayload {
+  current: CurrentWeather;
+  forecast: ForecastDay[];
+}
+
+export interface Suggestion {
+  label: string;
+  lat: number;
+  lon: number;
+}
+
+export async function fetchWeatherByCoords(lat: number, lon: number): Promise<WeatherPayload> {
+  const res = await fetch(`${BASE}?lat=${lat}&lon=${lon}`);
   const data = await res.json();
-  if (!res.ok) {
-    throw new Error(data.error ?? `Request failed with status ${res.status}`);
-  }
-  return data as T;
+  if (!res.ok) throw new Error(data.error ?? 'Failed to fetch weather');
+  return data;
 }
 
-export function getCurrentWeather(location: string): Promise<CurrentWeather> {
-  return apiFetch<CurrentWeather>(`${BASE_URL}/current?location=${encodeURIComponent(location)}`);
+export async function fetchWeatherByLocation(location: string): Promise<WeatherPayload> {
+  const res = await fetch(`${BASE}?location=${encodeURIComponent(location)}`);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? 'Failed to fetch weather');
+  return data;
 }
 
-export function getForecast(location: string): Promise<ForecastDay[]> {
-  return apiFetch<ForecastDay[]>(`${BASE_URL}/forecast?location=${encodeURIComponent(location)}`);
-}
-
-export interface GeoSuggestion {
-  name: string;
-  state?: string;
-  country: string;
-}
-
-export async function getSuggestions(q: string): Promise<GeoSuggestion[]> {
-  if (!q.trim()) return [];
-  const res = await fetch(`${BASE_URL}/suggestions?q=${encodeURIComponent(q)}`);
+export async function fetchSuggestions(q: string): Promise<Suggestion[]> {
+  if (q.trim().length < 2) return [];
+  const res = await fetch(`${BASE}/suggestions?q=${encodeURIComponent(q)}`);
   if (!res.ok) return [];
   return res.json();
 }

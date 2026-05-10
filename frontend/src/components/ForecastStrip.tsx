@@ -1,45 +1,30 @@
 import { ForecastDay } from '../utils/types';
+import { useUnits, toTemp } from '../utils/units';
 
-interface ForecastStripProps {
-  forecast: ForecastDay[];
-}
-
-export function ForecastStrip({ forecast }: ForecastStripProps) {
-  if (forecast.length === 0) return null;
-
+export function ForecastStrip({ forecast }: { forecast: ForecastDay[] }) {
+  if (!forecast.length) return null;
   return (
     <div className="forecast">
-      <h3 className="forecast__title">5-Day Forecast</h3>
-      <div className="forecast__strip">
-        {forecast.map((day) => (
-          <ForecastCard key={day.date} day={day} />
-        ))}
+      <p className="forecast__title">5-Day Forecast</p>
+      <div className="forecast__list">
+        {forecast.map(day => <ForecastRow key={day.date} day={day} />)}
       </div>
     </div>
   );
 }
 
-function ForecastCard({ day }: { day: ForecastDay }) {
-  const label = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
-
+function ForecastRow({ day }: { day: ForecastDay }) {
+  const { unit } = useUnits();
+  const label = new Date(day.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
   return (
-    <div className="forecast-card">
-      <span className="forecast-card__date">{label}</span>
-      <img
-        src={`https://openweathermap.org/img/wn/${day.icon}.png`}
-        alt={day.conditionDescription}
-        className="forecast-card__icon"
-      />
-      <span className="forecast-card__condition">{day.condition}</span>
-      <span className="forecast-card__temps">
-        {day.tempMax}° / {day.tempMin}°
-      </span>
-      <span className="forecast-card__detail">💧 {day.humidity}%</span>
-      <span className="forecast-card__detail">💨 {day.windSpeed} mph</span>
+    <div className="forecast-row">
+      <span className="forecast-row__day">{label}</span>
+      <img src={`https://openweathermap.org/img/wn/${day.icon}.png`} alt={day.conditionDescription} className="forecast-row__icon" />
+      <span className="forecast-row__humidity">💧{day.humidity}%</span>
+      <div className="forecast-row__temps">
+        <span className="forecast-row__max">{toTemp(day.tempMax, unit)}°</span>
+        <span className="forecast-row__min">{toTemp(day.tempMin, unit)}°</span>
+      </div>
     </div>
   );
 }

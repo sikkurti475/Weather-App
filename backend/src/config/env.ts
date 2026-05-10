@@ -7,6 +7,7 @@ interface Config {
   openWeatherBaseUrl: string;
   rateLimitWindowMs: number;
   rateLimitMax: number;
+  redisUrl: string;
 }
 
 const apiKey = process.env.OPENWEATHER_API_KEY;
@@ -20,6 +21,7 @@ const config: Config = {
   openWeatherBaseUrl: 'https://api.openweathermap.org',
   rateLimitWindowMs: 15 * 60 * 1000,
   rateLimitMax: 100,
+  redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
 };
 
 export default config;
