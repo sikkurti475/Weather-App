@@ -2,6 +2,7 @@
 
 A full-stack weather application built with Node.js/Express (TypeScript) and React (TypeScript). Displays current conditions and a 5-day forecast powered by the [OpenWeatherMap API](https://openweathermap.org/api).
 
+frontend/public/demo-ss.png
 ---
 
 ## Quick Start (2 steps)
