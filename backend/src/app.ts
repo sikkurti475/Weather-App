@@ -5,6 +5,7 @@ import swaggerUi from 'swagger-ui-express';
 import weatherRouter from './routes/weather';
 import { errorHandler } from './middleware/errorHandler';
 import { rateLimiter } from './middleware/rateLimiter';
+import { apiKeyAuth } from './middleware/apiKeyAuth';
 
 const swaggerSpec = swaggerJsdoc({
   definition: {
@@ -23,7 +24,7 @@ export function createApp() {
   app.use(rateLimiter);
 
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
-  app.use('/api/weather', weatherRouter);
+  app.use('/api/weather', apiKeyAuth, weatherRouter);
 
   app.use(errorHandler);
 

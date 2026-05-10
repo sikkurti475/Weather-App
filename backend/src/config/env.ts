@@ -8,6 +8,7 @@ interface Config {
   rateLimitWindowMs: number;
   rateLimitMax: number;
   redisUrl: string;
+  appApiKey: string;
 }
 
 const apiKey = process.env.OPENWEATHER_API_KEY;
@@ -22,6 +23,7 @@ const config: Config = {
   rateLimitWindowMs: 15 * 60 * 1000,
   rateLimitMax: 100,
   redisUrl: process.env.REDIS_URL ?? 'redis://localhost:6379',
+  appApiKey: process.env.APP_API_KEY ?? '',
 };
 
 export default config;
