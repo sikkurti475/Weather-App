@@ -65,13 +65,21 @@ router.get('/', async (req: Request, res: Response, next: NextFunction) => {
 router.get('/suggestions', async (req: Request, res: Response, next: NextFunction) => {
   const q = req.query.q as string | undefined;
   if (!q?.trim()) { res.status(400).json({ error: 'q is required' }); return; }
+  const trimmed = q.trim();
+  if (trimmed.length < 2) { res.json([]); return; }
   try {
-    const results = await geocode(q.trim());
-    res.json(results.map(r => ({
+    const cacheKey = `suggestions:${trimmed}`;
+    const cached = await cacheGet(cacheKey);
+    if (cached) { res.json(cached); return; }
+
+    const results = await geocode(trimmed);
+    const suggestions = results.map(r => ({
       label: [r.name, r.state, r.country].filter(Boolean).join(', '),
       lat: r.lat,
       lon: r.lon,
-    })));
+    }));
+    await cacheSet(cacheKey, suggestions);
+    res.json(suggestions);
   } catch (error) {
     next(error);
   }

@@ -2,7 +2,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useWeather } from './useWeather';
 import * as weatherApi from '../services/weatherApi';
 
-jest.mock('../../src/services/weatherApi');
+jest.mock('../services/weatherApi');
 
 const mockCurrent = {
   location: 'Austin', country: 'US', temperature: 95, feelsLike: 102,
@@ -19,6 +19,8 @@ const mockForecast = [
   },
 ];
 
+const mockPayload = { current: mockCurrent, forecast: mockForecast };
+
 describe('useWeather', () => {
   beforeEach(() => jest.clearAllMocks());
 
@@ -32,23 +34,21 @@ describe('useWeather', () => {
 
   it('sets loading true during fetch', async () => {
     let resolvePromise!: () => void;
-    (weatherApi.getCurrentWeather as jest.Mock).mockReturnValue(
-      new Promise((res) => { resolvePromise = () => res(mockCurrent); })
+    (weatherApi.fetchWeatherByCoords as jest.Mock).mockReturnValue(
+      new Promise((res) => { resolvePromise = () => res(mockPayload); })
     );
-    (weatherApi.getForecast as jest.Mock).mockResolvedValue(mockForecast);
 
     const { result } = renderHook(() => useWeather());
-    act(() => { result.current.search('Austin'); });
+    act(() => { result.current.searchByCoords(30.2672, -97.7431, 'Austin'); });
     expect(result.current.loading).toBe(true);
     await act(async () => resolvePromise());
   });
 
   it('populates current and forecast on success', async () => {
-    (weatherApi.getCurrentWeather as jest.Mock).mockResolvedValue(mockCurrent);
-    (weatherApi.getForecast as jest.Mock).mockResolvedValue(mockForecast);
+    (weatherApi.fetchWeatherByCoords as jest.Mock).mockResolvedValue(mockPayload);
 
     const { result } = renderHook(() => useWeather());
-    await act(async () => { await result.current.search('Austin'); });
+    await act(async () => { await result.current.searchByCoords(30.2672, -97.7431, 'Austin'); });
 
     expect(result.current.current).toEqual(mockCurrent);
     expect(result.current.forecast).toEqual(mockForecast);
@@ -57,13 +57,12 @@ describe('useWeather', () => {
   });
 
   it('sets error message on failure', async () => {
-    (weatherApi.getCurrentWeather as jest.Mock).mockRejectedValue(new Error('city not found'));
-    (weatherApi.getForecast as jest.Mock).mockResolvedValue([]);
+    (weatherApi.fetchWeatherByLocation as jest.Mock).mockRejectedValue(new Error('Location not found'));
 
     const { result } = renderHook(() => useWeather());
-    await act(async () => { await result.current.search('Nowhere'); });
+    await act(async () => { await result.current.searchByLocation('Nowhere'); });
 
-    expect(result.current.error).toBe('city not found');
+    expect(result.current.error).toBe('Location not found');
     expect(result.current.current).toBeNull();
   });
 });

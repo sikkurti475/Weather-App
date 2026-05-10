@@ -4,33 +4,27 @@ import { SearchBar } from './SearchBar';
 
 describe('SearchBar', () => {
   it('renders input and button', () => {
-    render(<SearchBar onSearch={jest.fn()} loading={false} />);
+    render(<SearchBar onSelectSuggestion={jest.fn()} onSearchText={jest.fn()} loading={false} />);
     expect(screen.getByRole('textbox')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /search/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /use my location/i })).toBeInTheDocument();
   });
 
-  it('disables button when input is empty', () => {
-    render(<SearchBar onSearch={jest.fn()} loading={false} />);
-    expect(screen.getByRole('button')).toBeDisabled();
-  });
-
-  it('enables button when input has text', async () => {
-    render(<SearchBar onSearch={jest.fn()} loading={false} />);
-    await userEvent.type(screen.getByRole('textbox'), 'Austin');
+  it('button is enabled when not loading', () => {
+    render(<SearchBar onSelectSuggestion={jest.fn()} onSearchText={jest.fn()} loading={false} />);
     expect(screen.getByRole('button')).not.toBeDisabled();
   });
 
-  it('calls onSearch with trimmed value on submit', async () => {
-    const onSearch = jest.fn();
-    render(<SearchBar onSearch={onSearch} loading={false} />);
+  it('calls onSearchText with trimmed value on Enter', async () => {
+    const onSearchText = jest.fn();
+    render(<SearchBar onSelectSuggestion={jest.fn()} onSearchText={onSearchText} loading={false} />);
     await userEvent.type(screen.getByRole('textbox'), '  Austin  ');
-    await userEvent.click(screen.getByRole('button'));
-    expect(onSearch).toHaveBeenCalledWith('Austin');
+    await userEvent.keyboard('{Enter}');
+    expect(onSearchText).toHaveBeenCalledWith('Austin');
   });
 
-  it('disables input and shows loading text while loading', () => {
-    render(<SearchBar onSearch={jest.fn()} loading={true} />);
-    expect(screen.getByRole('textbox')).toBeDisabled();
-    expect(screen.getByRole('button')).toHaveTextContent('Searching…');
+  it('disables button while loading', () => {
+    render(<SearchBar onSelectSuggestion={jest.fn()} onSearchText={jest.fn()} loading={true} />);
+    expect(screen.getByRole('textbox')).not.toBeDisabled();
+    expect(screen.getByRole('button')).toBeDisabled();
   });
 });

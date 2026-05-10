@@ -126,14 +126,64 @@ body[data-condition="haze"]        { background: linear-gradient(160deg, #5a6a7a
   overflow: hidden;
   min-height: 460px;
 }
+.weather-panel--skeleton { min-height: 520px; }
 .weather-panel__left {
   padding: 2.5rem 2rem;
   border-right: 1px solid var(--divider);
   display: flex;
   flex-direction: column;
   justify-content: center;
+  gap: 1rem;
 }
 .weather-panel__right { display: flex; flex-direction: column; }
+
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+}
+.skeleton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  to { transform: translateX(100%); }
+}
+.skeleton-heading { width: 45%; height: 28px; border-radius: 14px; }
+.skeleton-subtitle { width: 30%; height: 16px; border-radius: 12px; }
+.skeleton-temp { width: 30%; height: 80px; border-radius: 20px; }
+.skeleton-condition { width: 20%; height: 18px; border-radius: 12px; }
+.skeleton-hilo { width: 50%; height: 18px; border-radius: 12px; }
+.stats--skeleton { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+.stat--skeleton { background: rgba(255,255,255,0.06); border: none; padding: 0.75rem 0.9rem; border-radius: 14px; min-height: 70px; }
+.skeleton-stat-label { width: 55%; height: 12px; margin-bottom: 0.55rem; border-radius: 10px; }
+.skeleton-stat-value { width: 35%; height: 22px; border-radius: 12px; }
+
+.forecast-row--skeleton {
+  display: grid;
+  grid-template-columns: 2fr 36px 1fr 1.2fr;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
+  min-height: 64px;
+  border-bottom: 1px solid var(--divider);
+}
+.forecast-row--skeleton:last-child { border-bottom: none; }
+.skeleton-forecast-day { width: 80px; height: 16px; border-radius: 12px; }
+.skeleton-forecast-icon { width: 36px; height: 36px; border-radius: 12px; }
+.skeleton-forecast-humidity { width: 60px; height: 16px; border-radius: 12px; }
+.skeleton-forecast-max,
+.skeleton-forecast-min { width: 40px; height: 16px; border-radius: 12px; display: inline-block; }
+
+@media (max-width: 640px) {
+  .weather-panel { grid-template-columns: 1fr; }
+  .weather-panel__left { border-right: none; border-bottom: 1px solid var(--divider); }
+}
 
 @media (max-width: 640px) {
   .weather-panel { grid-template-columns: 1fr; }

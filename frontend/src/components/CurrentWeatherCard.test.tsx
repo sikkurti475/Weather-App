@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { CurrentWeatherCard } from './CurrentWeatherCard';
+import { UnitsProvider } from '../utils/units';
 import { CurrentWeather } from '../utils/types';
 
 const mockData: CurrentWeather = {
@@ -17,36 +18,39 @@ const mockData: CurrentWeather = {
   condition: 'Clear',
   conditionDescription: 'clear sky',
   icon: '01d',
-  sunrise: '2024-01-01 06:45 UTC',
-  sunset: '2024-01-01 18:30 UTC',
-  observedAt: '2024-01-01 14:00 UTC',
+  sunrise: '06:45',
+  sunset: '18:30',
+  observedAt: '14:00',
   heatIndex: 110,
 };
 
 describe('CurrentWeatherCard', () => {
+  const renderWithProvider = (component: React.ReactElement) =>
+    render(<UnitsProvider>{component}</UnitsProvider>);
+
   it('renders location and country', () => {
-    render(<CurrentWeatherCard data={mockData} />);
+    renderWithProvider(<CurrentWeatherCard data={mockData} />);
     expect(screen.getByText('Austin, US')).toBeInTheDocument();
   });
 
   it('renders temperature', () => {
-    render(<CurrentWeatherCard data={mockData} />);
-    expect(screen.getByText('95°F')).toBeInTheDocument();
+    renderWithProvider(<CurrentWeatherCard data={mockData} />);
+    expect(screen.getByText('95°')).toBeInTheDocument();
   });
 
   it('renders heat index when present', () => {
-    render(<CurrentWeatherCard data={mockData} />);
+    renderWithProvider(<CurrentWeatherCard data={mockData} />);
     expect(screen.getByText('Heat Index')).toBeInTheDocument();
     expect(screen.getByText('110°F')).toBeInTheDocument();
   });
 
   it('does not render heat index when null', () => {
-    render(<CurrentWeatherCard data={{ ...mockData, heatIndex: null }} />);
+    renderWithProvider(<CurrentWeatherCard data={{ ...mockData, heatIndex: null }} />);
     expect(screen.queryByText('Heat Index')).not.toBeInTheDocument();
   });
 
   it('renders wind with direction', () => {
-    render(<CurrentWeatherCard data={mockData} />);
+    renderWithProvider(<CurrentWeatherCard data={mockData} />);
     expect(screen.getByText('12 mph S')).toBeInTheDocument();
   });
 });
