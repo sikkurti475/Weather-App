@@ -55,6 +55,7 @@ backend/src/
   routes/weather.ts       — single router, 2 endpoints
   middleware/
     errorHandler.ts       — maps err.status to HTTP response
+    apiKeyAuth.ts         - api key validation
     rateLimiter.ts        — express-rate-limit config
   utils/
     types.ts              — OWM raw shapes + formatted response interfaces
@@ -111,10 +112,9 @@ frontend/src/
 ```
 
 ### State Management
-- No Redux or Zustand — state is local to components or lifted to useWeather
 - useWeather holds a Key union type (coords | location) as SWR key
 - searchedLabel tracks what the user typed/selected so the header shows the searched city name
-- UnitsProvider is the only global context — holds imperial | metric toggle state
+- UnitsProvider is the only global context — holds metric toggle state
 
 ### Unit Conversion
 All conversions happen client-side from imperial values the backend always returns:
@@ -189,7 +189,6 @@ Redis SET "locationCoords:40.0300,-75.3500" EX 900
 | Layer | Mechanism | TTL | Key Pattern |
 |-------|-----------|-----|-------------|
 | Backend Redis | locationCoords:{lat},{lon} | 15 min | Coords rounded to 4 decimal places |
-| Backend Redis | suggestions:{query} | 24h | Lowercased, trimmed query string |
 | Frontend SWR | In-memory | dedupingInterval 60s | SWR key object |
 
 **Why coords as cache key?**
