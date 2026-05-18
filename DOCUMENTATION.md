@@ -7,7 +7,6 @@
 4. [Data Flow](#4-data-flow)
 5. [Caching Strategy](#5-caching-strategy)
 6. [Security](#6-security)
-7. [Interview Q&A](#7-interview-qa)
 8. [Gaps & Future Considerations](#8-gaps--future-considerations)
 
 ---
